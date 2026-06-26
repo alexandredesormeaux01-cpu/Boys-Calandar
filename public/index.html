@@ -180,7 +180,37 @@
                 </div>
               </div>
 
-              <button type="submit" class="btn-primary">
+              <!-- Option Soirée Discord -->
+              <div class="form-group checkbox-group">
+                <label class="switch-container">
+                  <input type="checkbox" id="search-discord-evening-toggle">
+                  <span class="switch-slider"></span>
+                </label>
+                <div class="checkbox-label">
+                  <strong>Soirée Discord (Court créneau ciblé)</strong>
+                  <span>Restreindre la recherche à une plage horaire en soirée.</span>
+                </div>
+              </div>
+
+              <!-- Sous-champs Soirée Discord -->
+              <div id="discord-evening-fields" class="form-row hidden">
+                <div class="form-group">
+                  <label for="search-discord-start">Heure de début</label>
+                  <div class="input-wrapper">
+                    <i data-lucide="log-in"></i>
+                    <input type="number" id="search-discord-start" min="8" max="21" value="19">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="search-discord-end">Heure de fin</label>
+                  <div class="input-wrapper">
+                    <i data-lucide="log-out"></i>
+                    <input type="number" id="search-discord-end" min="9" max="22" value="22">
+                  </div>
+                </div>
+              </div>
+
+              <button type="submit" class="btn-primary" style="margin-top: 0.5rem;">
                 Lancer la recherche <i data-lucide="search"></i>
               </button>
             </form>

@@ -896,6 +896,11 @@ input:checked + .switch-slider:before {
   background: var(--color-busy-bg);
 }
 
+#discord-evening-fields {
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
 .hidden {
   display: none !important;
 }

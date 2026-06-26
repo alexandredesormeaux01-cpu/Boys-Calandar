@@ -53,6 +53,10 @@ const DOM = {
   searchActivity: document.getElementById('search-activity'),
   searchDuration: document.getElementById('search-duration'),
   searchExcludeWeekdaysPM: document.getElementById('search-exclude-weekdays-pm'),
+  searchDiscordEveningToggle: document.getElementById('search-discord-evening-toggle'),
+  discordEveningFields: document.getElementById('discord-evening-fields'),
+  searchDiscordStart: document.getElementById('search-discord-start'),
+  searchDiscordEnd: document.getElementById('search-discord-end'),
   searchResultsSection: document.getElementById('search-results-section'),
   searchResultsList: document.getElementById('search-results-list'),
   
@@ -249,6 +253,15 @@ function setupEventListeners() {
     }
   });
 
+  // Afficher/masquer les champs Soirée Discord
+  DOM.searchDiscordEveningToggle.addEventListener('change', () => {
+    if (DOM.searchDiscordEveningToggle.checked) {
+      DOM.discordEveningFields.classList.remove('hidden');
+    } else {
+      DOM.discordEveningFields.classList.add('hidden');
+    }
+  });
+
   // Recherche de créneaux
   DOM.formSearchSlots.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -256,11 +269,18 @@ function setupEventListeners() {
     const excludeWeekdaysPM = DOM.searchExcludeWeekdaysPM.checked;
     const activityName = DOM.searchActivity.value;
 
+    const body = {
+      duration,
+      excludeWeekdaysPM
+    };
+
+    if (DOM.searchDiscordEveningToggle.checked) {
+      body.startRange = DOM.searchDiscordStart.value;
+      body.endRange = DOM.searchDiscordEnd.value;
+    }
+
     try {
-      const slots = await apiRequest('/api/activities/search', 'POST', {
-        duration,
-        excludeWeekdaysPM
-      });
+      const slots = await apiRequest('/api/activities/search', 'POST', body);
       renderSearchResults(slots, activityName);
     } catch (err) {
       alert(err.message);

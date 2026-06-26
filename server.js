@@ -158,12 +158,16 @@ app.delete('/api/users/:username', authenticate, async (req, res) => {
 
 // Rechercher des créneaux libres de groupe
 app.post('/api/activities/search', async (req, res) => {
-  const { duration, excludeWeekdaysPM, searchDays = 30 } = req.body;
+  const { duration, excludeWeekdaysPM, searchDays = 30, startRange, endRange } = req.body;
   const dur = parseInt(duration, 10);
 
   if (isNaN(dur) || dur <= 0 || dur > 24) {
     return res.status(400).json({ error: 'La durée doit être comprise entre 1 et 24 heures.' });
   }
+
+  // Bornes horaires personnalisées (Soirée Discord par ex.)
+  const limitStart = startRange !== undefined ? parseInt(startRange, 10) : 8;
+  const limitEnd = endRange !== undefined ? parseInt(endRange, 10) : 22;
 
   try {
     const allUnavailabilities = await db.getUnavailabilities();
@@ -183,8 +187,8 @@ app.post('/api/activities/search', async (req, res) => {
       const dateStr = currentDate.toISOString().split('T')[0];
       const dayOfWeek = currentDate.getDay(); // 0 = Dimanche, 1 = Lundi, ..., 6 = Samedi
 
-      // Pour chaque heure possible de début (de 08:00 à 22:00)
-      for (let startHour = 8; startHour <= 22 - dur; startHour++) {
+      // Pour chaque heure possible de début dans la plage demandée
+      for (let startHour = limitStart; startHour <= limitEnd - dur; startHour++) {
         const endHour = startHour + dur;
 
         // 1. Appliquer le filtre d'exclusion de la semaine après-midi (Lundi au Vendredi de 12:00 à 18:00 par exemple)
