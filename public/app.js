@@ -21,6 +21,8 @@ const DOM = {
   userProfileHeader: document.getElementById('user-profile-header'),
   headerUsername: document.getElementById('header-username'),
   btnLogout: document.getElementById('btn-logout'),
+  btnToggleTheme: document.getElementById('btn-toggle-theme'),
+
   
   // Auth Form
   tabLogin: document.getElementById('tab-login'),
@@ -104,8 +106,31 @@ async function apiRequest(endpoint, method = 'GET', body = null) {
   return data;
 }
 
+// Logique de changement de thème
+function updateThemeUI(isDark) {
+  const icon = DOM.btnToggleTheme.querySelector('i');
+  if (isDark) {
+    document.body.classList.add('dark-mode');
+    icon.setAttribute('data-lucide', 'sun');
+    localStorage.setItem('theme', 'dark');
+  } else {
+    document.body.classList.remove('dark-mode');
+    icon.setAttribute('data-lucide', 'moon');
+    localStorage.setItem('theme', 'light');
+  }
+  if (window.lucide) {
+    lucide.createIcons();
+  }
+}
+
 // Initialisation
 async function init() {
+  // Charger le thème initial
+  const savedTheme = localStorage.getItem('theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const isDark = savedTheme === 'dark' || (!savedTheme && prefersDark);
+  updateThemeUI(isDark);
+
   setupEventListeners();
   if (state.token) {
     try {
@@ -293,6 +318,12 @@ function setupEventListeners() {
   DOM.btnToggleEvening.addEventListener('click', () => toggleRange(18, 22, true));
   DOM.btnToggleBlockAll.addEventListener('click', () => toggleRange(8, 22, true));
   DOM.btnToggleClear.addEventListener('click', () => toggleRange(8, 22, false));
+
+  // Événement de bascule de thème
+  DOM.btnToggleTheme.addEventListener('click', () => {
+    const isDark = document.body.classList.contains('dark-mode');
+    updateThemeUI(!isDark);
+  });
 }
 
 // Gérer le surlignage des dates sélectionnées dans le calendrier

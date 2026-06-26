@@ -20,11 +20,17 @@
         <i data-lucide="calendar-range" class="logo-icon"></i>
         <span>Calendrier <span class="logo-accent">Boys</span></span>
       </div>
-      <div id="user-profile-header" class="user-profile-header hidden">
-        <span class="welcome-text">Salut, <span id="header-username" class="username-highlight">...</span></span>
-        <button id="btn-logout" class="btn-secondary">
-          <i data-lucide="log-out"></i> Déconnexion
+      <div class="header-right-area">
+        <button id="btn-toggle-theme" class="btn-theme-toggle" title="Changer de thème">
+          <i data-lucide="sun"></i>
         </button>
+        
+        <div id="user-profile-header" class="user-profile-header hidden">
+          <span class="welcome-text">Salut, <span id="header-username" class="username-highlight">...</span></span>
+          <button id="btn-logout" class="btn-secondary">
+            <i data-lucide="log-out"></i> Déconnexion
+          </button>
+        </div>
       </div>
     </div>
   </header>
