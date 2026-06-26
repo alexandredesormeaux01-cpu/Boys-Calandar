@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calendrier Boys - Programmation d'Activités</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- CSS -->
+  <link rel="stylesheet" href="style.css">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <header>
+    <div class="header-container">
+      <div class="logo">
+        <i data-lucide="calendar-range" class="logo-icon"></i>
+        <span>Calendrier <span class="logo-accent">Boys</span></span>
+      </div>
+      <div id="user-profile-header" class="user-profile-header hidden">
+        <span class="welcome-text">Salut, <span id="header-username" class="username-highlight">...</span></span>
+        <button id="btn-logout" class="btn-secondary">
+          <i data-lucide="log-out"></i> Déconnexion
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- ÉCRAN D'AUTHENTIFICATION -->
+    <section id="auth-section" class="auth-section">
+      <div class="auth-card">
+        <div class="auth-tabs">
+          <button id="tab-login" class="auth-tab active">Connexion</button>
+          <button id="tab-register" class="auth-tab">Inscription</button>
+        </div>
+
+        <!-- Formulaire de Connexion -->
+        <form id="form-login" class="auth-form">
+          <h2>Se connecter</h2>
+          <div class="form-group">
+            <label for="login-username">Nom d'utilisateur</label>
+            <div class="input-wrapper">
+              <i data-lucide="user"></i>
+              <input type="text" id="login-username" placeholder="Entrez votre nom" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="login-password">Mot de passe</label>
+            <div class="input-wrapper">
+              <i data-lucide="lock"></i>
+              <input type="password" id="login-password" placeholder="Mot de passe" required>
+            </div>
+          </div>
+          <button type="submit" class="btn-primary">Se connecter <i data-lucide="arrow-right"></i></button>
+        </form>
+
+        <!-- Formulaire d'Inscription -->
+        <form id="form-register" class="auth-form hidden">
+          <h2>Créer un compte</h2>
+          <div class="form-group">
+            <label for="register-username">Nom d'utilisateur</label>
+            <div class="input-wrapper">
+              <i data-lucide="user"></i>
+              <input type="text" id="register-username" placeholder="Choisissez un pseudo" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="register-password">Mot de passe</label>
+            <div class="input-wrapper">
+              <i data-lucide="lock"></i>
+              <input type="password" id="register-password" placeholder="Créez un mot de passe" required>
+            </div>
+          </div>
+          <button type="submit" class="btn-primary">S'inscrire <i data-lucide="user-plus"></i></button>
+        </form>
+        
+        <div id="auth-alert" class="alert error hidden"></div>
+      </div>
+    </section>
+
+    <!-- TABLEAU DE BORD (DASHBOARD) -->
+    <section id="dashboard-section" class="dashboard-section hidden">
+      <div class="dashboard-grid">
+        
+        <!-- COLONNE GAUCHE (ÉLARGIE) : Calendrier Personnel + Éditeur Latéral -->
+        <div class="card panel-personal">
+          <div class="panel-header">
+            <i data-lucide="calendar-days" class="panel-icon text-cyan"></i>
+            <h2>Mes Indisponibilités</h2>
+          </div>
+          <p class="panel-desc">Gérez vos indisponibilités en sélectionnant un jour puis en cochant les heures à droite (sauvegarde automatique).</p>
+          
+          <div class="personal-calendar-container">
+            <!-- Partie Calendrier -->
+            <div class="calendar-sub-panel">
+              <div class="calendar-navigation">
+                <button id="prev-month" class="btn-icon"><i data-lucide="chevron-left"></i></button>
+                <h3 id="calendar-title">Juin 2026</h3>
+                <button id="next-month" class="btn-icon"><i data-lucide="chevron-right"></i></button>
+              </div>
+              <div class="calendar-weekdays">
+                <div>Dim</div><div>Lun</div><div>Mar</div><div>Mer</div><div>Jeu</div><div>Ven</div><div>Sam</div>
+              </div>
+              <div id="calendar-grid" class="calendar-grid-days"></div>
+              
+              <div class="calendar-legend">
+                <div class="legend-item"><span class="legend-dot free"></span><span>Disponible</span></div>
+                <div class="legend-item"><span class="legend-dot partial"></span><span>Partiel</span></div>
+                <div class="legend-item"><span class="legend-dot busy"></span><span>Indisponible</span></div>
+              </div>
+            </div>
+
+            <!-- Partie Éditeur d'Heures (Intégrée) -->
+            <div class="hours-sub-panel" id="hours-editor-panel">
+              <div class="editor-header">
+                <i data-lucide="clock" class="editor-header-icon"></i>
+                <h3 id="editor-date-title">Sélectionnez un jour</h3>
+              </div>
+              
+              <div id="editor-content-wrapper" class="editor-content-wrapper disabled-view">
+                <div class="quick-toggles-container">
+                  <span class="section-subtitle">Raccourcis rapides :</span>
+                  <div class="quick-toggles">
+                    <button type="button" class="btn-shortcut" id="btn-toggle-morning">Matin (8h-12h)</button>
+                    <button type="button" class="btn-shortcut" id="btn-toggle-afternoon">Après-midi (12h-18h)</button>
+                    <button type="button" class="btn-shortcut" id="btn-toggle-evening">Soir (18h-22h)</button>
+                    <button type="button" class="btn-shortcut btn-danger" id="btn-toggle-block-all">Bloquer journée</button>
+                    <button type="button" class="btn-shortcut btn-danger" id="btn-toggle-clear" style="grid-column: span 2;">Tout libérer</button>
+                  </div>
+
+                </div>
+
+                <span class="section-subtitle">Heures indisponibles (cocher pour bloquer) :</span>
+                <div class="hours-grid" id="editor-hours-grid">
+                  <!-- Injecté par JS de 8h à 22h -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- COLONNE DROITE : Recherche d'activité + Groupe -->
+        <div class="right-column-group">
+          <!-- Recherche de créneaux -->
+          <div class="card panel-search">
+            <div class="panel-header">
+              <i data-lucide="sparkles" class="panel-icon text-purple"></i>
+              <h2>Trouver un Créneau</h2>
+            </div>
+            <p class="panel-desc">Trouvez le meilleur moment pour tout le groupe.</p>
+
+            <form id="form-search-slots" class="search-form">
+              <div class="form-group">
+                <label for="search-activity">Activité prévue</label>
+                <div class="input-wrapper">
+                  <i data-lucide="activity"></i>
+                  <input type="text" id="search-activity" placeholder="Ex: Resto, Soirée jeux..." required>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="search-duration">Durée de l'activité (heures)</label>
+                <div class="input-wrapper">
+                  <i data-lucide="hourglass"></i>
+                  <input type="number" id="search-duration" min="1" max="14" value="2" required>
+                </div>
+              </div>
+
+              <div class="form-group checkbox-group">
+                <label class="switch-container">
+                  <input type="checkbox" id="search-exclude-weekdays-pm" checked>
+                  <span class="switch-slider"></span>
+                </label>
+                <div class="checkbox-label">
+                  <strong>Exclure du lundi au vendredi après-midi</strong>
+                  <span>Ignore la semaine entre 12h et 18h.</span>
+                </div>
+              </div>
+
+              <button type="submit" class="btn-primary">
+                Lancer la recherche <i data-lucide="search"></i>
+              </button>
+            </form>
+
+            <!-- RÉSULTATS DE RECHERCHE -->
+            <div id="search-results-section" class="search-results-section hidden">
+              <h3>Disponibilités communes trouvées :</h3>
+              <div id="search-results-list" class="results-list"></div>
+            </div>
+          </div>
+
+          <!-- Membres & Aperçu de Groupe -->
+          <div class="card panel-group">
+            <div class="panel-header">
+              <i data-lucide="users" class="panel-icon text-pink"></i>
+              <h2>Membres & Statut du Groupe</h2>
+            </div>
+            
+            <div class="group-stats">
+              <div class="stat-card">
+                <span class="stat-num" id="stat-user-count">0</span>
+                <span class="stat-label">Membres</span>
+              </div>
+              <div class="stat-card">
+                <span class="stat-num" id="stat-unavail-count">0</span>
+                <span class="stat-label">Créneaux bloqués</span>
+              </div>
+            </div>
+
+            <div class="member-list-section">
+              <h3>Inscrits</h3>
+              <ul id="group-member-list" class="member-list"></ul>
+            </div>
+
+            <div class="group-calendar-preview">
+              <h3>Disponibilités aujourd'hui (8h - 22h)</h3>
+              <p class="small-desc">Les zones colorées indiquent qu'au moins un membre est indisponible.</p>
+              <div class="timeline-hours">
+                <div>8h</div><div>12h</div><div>16h</div><div>20h</div><div>22h</div>
+              </div>
+              <div id="group-timeline-bar" class="timeline-bar"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+    });
+  </script>
+  <script src="app.js"></script>
+</body>
+</html>
