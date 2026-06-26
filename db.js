@@ -7,6 +7,26 @@ const isPostgres = !!process.env.DATABASE_URL;
 
 let pool = null;
 
+// Convertit les formats de date de PostgreSQL en chaîne standard YYYY-MM-DD
+function formatDbDate(d) {
+  if (!d) return '';
+  if (d instanceof Date) {
+    // Si c'est un objet Date (node-postgres convertit automatiquement les colonnes DATE)
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+  if (typeof d === 'string') {
+    if (d.includes('T')) {
+      return d.split('T')[0];
+    }
+    return d.trim();
+  }
+  return String(d);
+}
+
+
 // Initialisation de la base de données
 async function initDb() {
   if (isPostgres) {
@@ -107,7 +127,12 @@ module.exports = {
   getUnavailabilities: async () => {
     if (isPostgres) {
       const res = await pool.query('SELECT username, date, start_hour AS "startHour", end_hour AS "endHour" FROM unavailabilities');
-      return res.rows;
+      return res.rows.map(r => ({
+        username: r.username,
+        date: formatDbDate(r.date),
+        startHour: r.startHour,
+        endHour: r.endHour
+      }));
     } else {
       const db = readDbSync();
       return db.unavailabilities;
@@ -150,7 +175,12 @@ module.exports = {
   getUserUnavailabilities: async (username) => {
     if (isPostgres) {
       const res = await pool.query('SELECT username, date, start_hour AS "startHour", end_hour AS "endHour" FROM unavailabilities WHERE LOWER(username) = LOWER($1)', [username]);
-      return res.rows;
+      return res.rows.map(r => ({
+        username: r.username,
+        date: formatDbDate(r.date),
+        startHour: r.startHour,
+        endHour: r.endHour
+      }));
     } else {
       const db = readDbSync();
       return db.unavailabilities.filter(u => u.username.toLowerCase() === username.toLowerCase());
