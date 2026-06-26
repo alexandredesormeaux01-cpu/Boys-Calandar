@@ -47,7 +47,6 @@ const DOM = {
   btnToggleEvening: document.getElementById('btn-toggle-evening'),
   btnToggleBlockAll: document.getElementById('btn-toggle-block-all'),
   btnToggleClear: document.getElementById('btn-toggle-clear'),
-
   
   // Search
   formSearchSlots: document.getElementById('form-search-slots'),
@@ -63,6 +62,21 @@ const DOM = {
   groupMemberList: document.getElementById('group-member-list'),
   groupTimelineBar: document.getElementById('group-timeline-bar'),
 };
+
+// Helpers de Date locaux pour éviter les bugs de fuseau horaire (Timezone)
+function parseLocalDate(dateStr) {
+  const parts = dateStr.split('-');
+  // Crée une date à minuit local
+  return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+}
+
+function getLocalTodayStr() {
+  const today = new Date();
+  const y = today.getFullYear();
+  const m = String(today.getMonth() + 1).padStart(2, '0');
+  const d = String(today.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
 
 // API Helpers
 async function apiRequest(endpoint, method = 'GET', body = null) {
@@ -116,11 +130,7 @@ async function showDashboard() {
   DOM.headerUsername.textContent = state.username;
   
   // Sélectionner la date d'aujourd'hui par défaut
-  const today = new Date();
-  const y = today.getFullYear();
-  const m = String(today.getMonth() + 1).padStart(2, '0');
-  const d = String(today.getDate()).padStart(2, '0');
-  state.selectedDates = [`${y}-${m}-${d}`];
+  state.selectedDates = [getLocalTodayStr()];
   
   await refreshDashboardData();
   selectDates(state.selectedDates);
@@ -263,7 +273,6 @@ function setupEventListeners() {
   DOM.btnToggleEvening.addEventListener('click', () => toggleRange(18, 22, true));
   DOM.btnToggleBlockAll.addEventListener('click', () => toggleRange(8, 22, true));
   DOM.btnToggleClear.addEventListener('click', () => toggleRange(8, 22, false));
-
 }
 
 // Gérer le surlignage des dates sélectionnées dans le calendrier
@@ -289,9 +298,9 @@ function selectDates(dates) {
   
   DOM.editorContentWrapper.classList.remove('disabled-view');
   
-  // Formater le titre
+  // Formater le titre en évitant les décalages de timezone
   if (dates.length === 1) {
-    const formattedDate = new Date(dates[0]).toLocaleDateString('fr-FR', {
+    const formattedDate = parseLocalDate(dates[0]).toLocaleDateString('fr-FR', {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
     });
     DOM.editorDateTitle.textContent = formattedDate;
@@ -305,13 +314,13 @@ function selectDates(dates) {
     });
   } else {
     // Trier chronologiquement
-    const sortedDates = [...dates].sort((a, b) => new Date(a) - new Date(b));
-    const firstDateStr = new Date(sortedDates[0]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
-    const lastDateStr = new Date(sortedDates[sortedDates.length - 1]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+    const sortedDates = [...dates].sort((a, b) => parseLocalDate(a) - parseLocalDate(b));
+    const firstDateStr = parseLocalDate(sortedDates[0]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+    const lastDateStr = parseLocalDate(sortedDates[sortedDates.length - 1]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
     
     DOM.editorDateTitle.textContent = `Du ${firstDateStr} au ${lastDateStr} (${dates.length} jrs)`;
     
-    // Charger les indisponibilités : on fait l'union des heures bloquées de tous ces jours
+    // Charger les indisponibilités : union des heures bloquées
     dates.forEach(dateStr => {
       const dayUnavail = state.myUnavailabilities.filter(u => u.date === dateStr);
       dayUnavail.forEach(u => {
@@ -324,7 +333,7 @@ function selectDates(dates) {
   
   renderHoursEditorGrid();
   updateCalendarSelectionFocus();
-  renderGroupTimeline(); // Actualiser la timeline du groupe pour refléter le jour ou la période
+  renderGroupTimeline(); // Actualiser la timeline du groupe
 }
 
 // Rendu de la grille d'heures
@@ -362,7 +371,6 @@ function renderHoursEditorGrid() {
 
 // Sauvegarde automatique pour TOUTES les dates sélectionnées
 async function autoSaveHours() {
-  // Convertir les heures bloquées courantes en intervalles { startHour, endHour }
   const currentIntervalsTemplate = [];
   const hoursSorted = Array.from(state.selectedHours).sort((a, b) => a - b);
   
@@ -448,8 +456,7 @@ function renderCalendar() {
     DOM.calendarGrid.appendChild(emptyDiv);
   }
   
-  const today = new Date();
-  const todayStr = today.toISOString().split('T')[0];
+  const todayStr = getLocalTodayStr();
 
   for (let day = 1; day <= totalDays; day++) {
     const dayButton = document.createElement('button');
@@ -496,11 +503,9 @@ function renderCalendar() {
     // MOUSE ENTER : Étendre le drag selection
     dayButton.addEventListener('mouseenter', () => {
       if (state.isDragging && state.dragStartDateStr) {
-        // Obtenir le jour de début et le jour actuel pour calculer la plage
         const partsStart = state.dragStartDateStr.split('-');
         const partsCurr = dateStr.split('-');
         
-        // Si on est dans le même mois
         if (partsStart[0] === partsCurr[0] && partsStart[1] === partsCurr[1]) {
           const startDayVal = parseInt(partsStart[2], 10);
           const currDayVal = parseInt(partsCurr[2], 10);
@@ -557,7 +562,7 @@ function renderGroupTimeline() {
   // Utiliser la première date sélectionnée ou aujourd'hui
   const activeDate = (state.selectedDates && state.selectedDates.length > 0) 
     ? state.selectedDates[0] 
-    : new Date().toISOString().split('T')[0];
+    : getLocalTodayStr();
   
   const activeUnavailabilities = state.groupUnavailabilities.filter(u => u.date === activeDate);
   
@@ -595,7 +600,7 @@ function renderSearchResults(slots, activityName) {
     const card = document.createElement('div');
     card.className = 'result-card';
     
-    const formattedDate = new Date(slot.date).toLocaleDateString('fr-FR', {
+    const formattedDate = parseLocalDate(slot.date).toLocaleDateString('fr-FR', {
       day: 'numeric', month: 'long', year: 'numeric'
     });
     
