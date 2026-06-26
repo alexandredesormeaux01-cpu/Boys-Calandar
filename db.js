@@ -155,5 +155,17 @@ module.exports = {
       const db = readDbSync();
       return db.unavailabilities.filter(u => u.username.toLowerCase() === username.toLowerCase());
     }
+  },
+
+  deleteUser: async (username) => {
+    if (isPostgres) {
+      await pool.query('DELETE FROM users WHERE LOWER(username) = LOWER($1)', [username]);
+      await pool.query('DELETE FROM unavailabilities WHERE LOWER(username) = LOWER($1)', [username]);
+    } else {
+      const db = readDbSync();
+      db.users = db.users.filter(u => u.username.toLowerCase() !== username.toLowerCase());
+      db.unavailabilities = db.unavailabilities.filter(u => u.username.toLowerCase() !== username.toLowerCase());
+      writeDbSync(db);
+    }
   }
 };

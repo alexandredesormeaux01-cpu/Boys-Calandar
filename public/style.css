@@ -817,7 +817,7 @@ input:checked + .switch-slider:before {
 .member-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: space-between;
   background: var(--bg-main);
   padding: 0.5rem 0.8rem;
   border-radius: 8px;
@@ -825,6 +825,34 @@ input:checked + .switch-slider:before {
   font-size: 0.9rem;
   font-weight: 600;
 }
+
+.member-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.btn-eject {
+  background: none;
+  border: none;
+  color: var(--color-busy-text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  transition: var(--transition-smooth);
+}
+
+.btn-eject:hover {
+  background: var(--color-busy-bg);
+}
+
 
 /* Timeline */
 .group-calendar-preview h3 {

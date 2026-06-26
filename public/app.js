@@ -546,12 +546,42 @@ function renderGroupPanel() {
   DOM.statUnavailCount.textContent = monthUnavailabilities.length;
   
   DOM.groupMemberList.innerHTML = '';
+  
+  const adminUsername = 'alexandre.desormeaux01@gmail.com';
+  const isAdmin = state.username && state.username.toLowerCase() === adminUsername.toLowerCase();
+  
   state.groupUsers.forEach(username => {
     const li = document.createElement('li');
     li.className = 'member-item';
-    li.innerHTML = `<i data-lucide="user" style="width:14px;color:var(--primary-color)"></i> ${username}`;
+    
+    let htmlContent = `<div class="member-info"><i data-lucide="user" style="width:14px;color:var(--primary-color)"></i> <span>${username}</span></div>`;
+    
+    // Si connecté en tant qu'admin et ce n'est pas son propre compte
+    if (isAdmin && username.toLowerCase() !== adminUsername.toLowerCase()) {
+      htmlContent += `<button class="btn-eject" title="Éjecter ce membre" data-username="${username}"><i data-lucide="user-minus" style="width:14px;height:14px;"></i></button>`;
+    }
+    
+    li.innerHTML = htmlContent;
     DOM.groupMemberList.appendChild(li);
   });
+  
+  // Attacher les écouteurs de clic pour l'éjection
+  if (isAdmin) {
+    DOM.groupMemberList.querySelectorAll('.btn-eject').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const username = btn.dataset.username;
+        if (confirm(`Voulez-vous vraiment éjecter ${username} du groupe ? Toutes ses données seront supprimées.`)) {
+          try {
+            await apiRequest(`/api/users/${encodeURIComponent(username)}`, 'DELETE');
+            await refreshDashboardData();
+          } catch (err) {
+            alert('Erreur lors de l\'éjection : ' + err.message);
+          }
+        }
+      });
+    });
+  }
   
   renderGroupTimeline();
   lucide.createIcons();

@@ -13,14 +13,24 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Stockage en mémoire des sessions actives: token -> username
 const sessions = {};
 
-// Middleware d'authentification
-function authenticate(req, res, next) {
+// Middleware d'authentification (vérifie si l'utilisateur existe toujours)
+async function authenticate(req, res, next) {
   const token = req.headers['authorization'];
   if (!token || !sessions[token]) {
     return res.status(401).json({ error: 'Non autorisé. Veuillez vous connecter.' });
   }
-  req.username = sessions[token];
-  next();
+  const username = sessions[token];
+  try {
+    const user = await db.getUser(username);
+    if (!user) {
+      delete sessions[token];
+      return res.status(401).json({ error: 'Votre compte n\'existe plus.' });
+    }
+    req.username = user.username;
+    next();
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 }
 
 // Routes d'authentification
@@ -116,6 +126,35 @@ app.get('/api/users', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// Supprimer un utilisateur du groupe (réservé à l'administrateur)
+app.delete('/api/users/:username', authenticate, async (req, res) => {
+  const adminUsername = 'alexandre.desormeaux01@gmail.com';
+  if (req.username.toLowerCase() !== adminUsername.toLowerCase()) {
+    return res.status(403).json({ error: 'Seul l\'administrateur peut éjecter des membres.' });
+  }
+
+  const userToEject = req.params.username;
+  if (userToEject.toLowerCase() === adminUsername.toLowerCase()) {
+    return res.status(400).json({ error: 'Vous ne pouvez pas vous éjecter vous-même.' });
+  }
+
+  try {
+    await db.deleteUser(userToEject);
+
+    // Expulser l'utilisateur de ses sessions actives s'il est connecté
+    for (const token in sessions) {
+      if (sessions[token].toLowerCase() === userToEject.toLowerCase()) {
+        delete sessions[token];
+      }
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 
 // Rechercher des créneaux libres de groupe
 app.post('/api/activities/search', async (req, res) => {
