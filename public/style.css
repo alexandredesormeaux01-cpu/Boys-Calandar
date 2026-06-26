@@ -321,6 +321,33 @@ header {
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
+.select-premium {
+  width: 100%;
+  padding: 0.75rem 2rem 0.75rem 2.8rem;
+  background: var(--bg-input);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  font-size: 0.95rem;
+  outline: none;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.select-premium:focus {
+  background: var(--bg-input-focus);
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+/* Surcharger pour les options dans le menu déroulant */
+.select-premium option {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+
 /* Boutons */
 .btn-primary {
   background: var(--primary-color);

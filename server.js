@@ -156,19 +156,10 @@ app.delete('/api/users/:username', authenticate, async (req, res) => {
 });
 
 
-// Rechercher des créneaux libres de groupe
+// Rechercher des créneaux libres de groupe (Moteur multi-format)
 app.post('/api/activities/search', async (req, res) => {
-  const { duration, excludeWeekdaysPM, searchDays = 30, startRange, endRange } = req.body;
-  const dur = parseInt(duration, 10);
-
-  if (isNaN(dur) || dur <= 0 || dur > 24) {
-    return res.status(400).json({ error: 'La durée doit être comprise entre 1 et 24 heures.' });
-  }
-
-  // Bornes horaires personnalisées (Soirée Discord par ex.)
-  const limitStart = startRange !== undefined ? parseInt(startRange, 10) : 8;
-  const limitEnd = endRange !== undefined ? parseInt(endRange, 10) : 22;
-
+  const { durationType = 'hours', duration, excludeWeekdaysPM, searchDays = 30, startRange, endRange, daysCount } = req.body;
+  
   try {
     const allUnavailabilities = await db.getUnavailabilities();
     const allUsers = (await db.getUsers()).map(u => u.username.toLowerCase());
@@ -180,44 +171,154 @@ app.post('/api/activities/search', async (req, res) => {
     const availableSlots = [];
     const startDay = new Date();
     
-    // Analyser les prochains jours
-    for (let d = 0; d < searchDays; d++) {
-      const currentDate = new Date(startDay);
-      currentDate.setDate(startDay.getDate() + d);
-      const dateStr = currentDate.toISOString().split('T')[0];
-      const dayOfWeek = currentDate.getDay(); // 0 = Dimanche, 1 = Lundi, ..., 6 = Samedi
-
-      // Pour chaque heure possible de début dans la plage demandée
-      for (let startHour = limitStart; startHour <= limitEnd - dur; startHour++) {
-        const endHour = startHour + dur;
-
-        // 1. Appliquer le filtre d'exclusion de la semaine après-midi (Lundi au Vendredi de 12:00 à 18:00 par exemple)
-        let isExcluded = false;
-        if (excludeWeekdaysPM && dayOfWeek >= 1 && dayOfWeek <= 5) {
-          if (!(endHour <= 12 || startHour >= 18)) {
-            isExcluded = true;
+    // Vérifie si une période est libre pour l'ensemble des membres du groupe
+    function isPeriodFree(dateStr, startHour, endHour) {
+      for (const u of allUnavailabilities) {
+        if (u.date === dateStr) {
+          if (!(endHour <= u.startHour || startHour >= u.endHour)) {
+            return false;
           }
         }
+      }
+      return true;
+    }
 
-        if (isExcluded) continue;
+    // Récupérer la date formatée YYYY-MM-DD et le nom du jour de la semaine
+    function getDateInfo(dateObj) {
+      return {
+        date: dateObj.toISOString().split('T')[0],
+        dayOfWeek: dateObj.toLocaleDateString('fr-FR', { weekday: 'long' })
+      };
+    }
 
-        // 2. Vérifier si un des utilisateurs est indisponible sur ce créneau
-        let slotFree = true;
-        for (const u of allUnavailabilities) {
-          if (u.date === dateStr) {
-            if (!(endHour <= u.startHour || startHour >= u.endHour)) {
-              slotFree = false;
-              break;
+    if (durationType === 'hours') {
+      const dur = parseInt(duration, 10) || 2;
+      const limitStart = startRange !== undefined ? parseInt(startRange, 10) : 8;
+      const limitEnd = endRange !== undefined ? parseInt(endRange, 10) : 22;
+
+      for (let d = 0; d < searchDays; d++) {
+        const currentDate = new Date(startDay);
+        currentDate.setDate(startDay.getDate() + d);
+        const { date, dayOfWeek } = getDateInfo(currentDate);
+        const dayOfWeekNum = currentDate.getDay();
+
+        for (let startHour = limitStart; startHour <= limitEnd - dur; startHour++) {
+          const endHour = startHour + dur;
+
+          let isExcluded = false;
+          if (excludeWeekdaysPM && dayOfWeekNum >= 1 && dayOfWeekNum <= 5) {
+            if (!(endHour <= 12 || startHour >= 18)) {
+              isExcluded = true;
             }
           }
+
+          if (isExcluded) continue;
+
+          if (isPeriodFree(date, startHour, endHour)) {
+            availableSlots.push({
+              type: 'hours',
+              date: date,
+              dayOfWeek: dayOfWeek,
+              startHour,
+              endHour
+            });
+          }
+        }
+      }
+    } 
+    else if (durationType === 'overnight') {
+      // Soirée / Nuitée : libre de 18h à 22h le soir J et de 8h à 9h le matin J+1
+      for (let d = 0; d < searchDays - 1; d++) {
+        const dateJ = new Date(startDay);
+        dateJ.setDate(startDay.getDate() + d);
+        const dateJPlus1 = new Date(startDay);
+        dateJPlus1.setDate(startDay.getDate() + d + 1);
+
+        const infoJ = getDateInfo(dateJ);
+        const infoJPlus1 = getDateInfo(dateJPlus1);
+
+        if (isPeriodFree(infoJ.date, 18, 22) && isPeriodFree(infoJPlus1.date, 8, 9)) {
+          availableSlots.push({
+            type: 'overnight',
+            date: infoJ.date,
+            endDate: infoJPlus1.date,
+            dayOfWeek: infoJ.dayOfWeek,
+            label: `Soirée & Nuitée (du ${infoJ.dayOfWeek} soir au lendemain matin)`
+          });
+        }
+      }
+    }
+    else if (durationType === 'full-day') {
+      // Journée complète : libre de 8h à 22h
+      for (let d = 0; d < searchDays; d++) {
+        const currentDate = new Date(startDay);
+        currentDate.setDate(startDay.getDate() + d);
+        const { date, dayOfWeek } = getDateInfo(currentDate);
+
+        if (isPeriodFree(date, 8, 22)) {
+          availableSlots.push({
+            type: 'full-day',
+            date: date,
+            dayOfWeek: dayOfWeek,
+            label: `Journée complète (08h00 - 22h00)`
+          });
+        }
+      }
+    }
+    else if (durationType === 'weekend') {
+      // Week-end complet : Samedi et Dimanche consécutifs entièrement libres (8h à 22h)
+      for (let d = 0; d < searchDays - 1; d++) {
+        const dateSat = new Date(startDay);
+        dateSat.setDate(startDay.getDate() + d);
+        
+        if (dateSat.getDay() === 6) { // Samedi
+          const dateSun = new Date(startDay);
+          dateSun.setDate(startDay.getDate() + d + 1);
+
+          const infoSat = getDateInfo(dateSat);
+          const infoSun = getDateInfo(dateSun);
+
+          if (isPeriodFree(infoSat.date, 8, 22) && isPeriodFree(infoSun.date, 8, 22)) {
+            availableSlots.push({
+              type: 'weekend',
+              date: infoSat.date,
+              endDate: infoSun.date,
+              label: `Week-end complet (Samedi & Dimanche)`
+            });
+          }
+        }
+      }
+    }
+    else if (durationType === 'consecutive-days') {
+      // Plusieurs jours consécutifs : N jours d'affilée libres de 8h à 22h
+      const nDays = parseInt(daysCount, 10) || 2;
+      if (nDays <= 1 || nDays > 7) {
+        return res.status(400).json({ error: 'Le nombre de jours consécutifs doit être compris entre 2 et 7.' });
+      }
+
+      for (let d = 0; d <= searchDays - nDays; d++) {
+        let allDaysFree = true;
+        const daysList = [];
+
+        for (let i = 0; i < nDays; i++) {
+          const checkDate = new Date(startDay);
+          checkDate.setDate(startDay.getDate() + d + i);
+          const info = getDateInfo(checkDate);
+          
+          if (!isPeriodFree(info.date, 8, 22)) {
+            allDaysFree = false;
+            break;
+          }
+          daysList.push(info);
         }
 
-        if (slotFree) {
+        if (allDaysFree) {
           availableSlots.push({
-            date: dateStr,
-            dayOfWeek: currentDate.toLocaleDateString('fr-FR', { weekday: 'long' }),
-            startHour,
-            endHour
+            type: 'consecutive-days',
+            date: daysList[0].date,
+            endDate: daysList[daysList.length - 1].date,
+            daysCount: nDays,
+            label: `Séjour de ${nDays} jours consécutifs`
           });
         }
       }

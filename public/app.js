@@ -53,7 +53,11 @@ const DOM = {
   // Search
   formSearchSlots: document.getElementById('form-search-slots'),
   searchActivity: document.getElementById('search-activity'),
+  searchDurationType: document.getElementById('search-duration-type'),
+  hoursDurationField: document.getElementById('hours-duration-field'),
   searchDuration: document.getElementById('search-duration'),
+  daysDurationField: document.getElementById('days-duration-field'),
+  searchDaysCount: document.getElementById('search-days-count'),
   searchExcludeWeekdaysPM: document.getElementById('search-exclude-weekdays-pm'),
   searchDiscordEveningToggle: document.getElementById('search-discord-evening-toggle'),
   discordEveningFields: document.getElementById('discord-evening-fields'),
@@ -287,21 +291,50 @@ function setupEventListeners() {
     }
   });
 
+  // Gérer l'affichage conditionnel des durées dans la recherche
+  DOM.searchDurationType.addEventListener('change', () => {
+    const type = DOM.searchDurationType.value;
+    
+    // Cacher par défaut
+    DOM.hoursDurationField.classList.add('hidden');
+    DOM.daysDurationField.classList.add('hidden');
+    
+    // Masquer l'option Soirée Discord si ce n'est pas "Quelques heures"
+    const discordToggleRow = DOM.searchDiscordEveningToggle.closest('.checkbox-group');
+    if (type === 'hours') {
+      DOM.hoursDurationField.classList.remove('hidden');
+      if (discordToggleRow) discordToggleRow.classList.remove('hidden');
+    } else {
+      if (discordToggleRow) discordToggleRow.classList.add('hidden');
+      DOM.discordEveningFields.classList.add('hidden');
+      DOM.searchDiscordEveningToggle.checked = false;
+    }
+    
+    if (type === 'consecutive-days') {
+      DOM.daysDurationField.classList.remove('hidden');
+    }
+  });
+
   // Recherche de créneaux
   DOM.formSearchSlots.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const duration = DOM.searchDuration.value;
+    const durationType = DOM.searchDurationType.value;
     const excludeWeekdaysPM = DOM.searchExcludeWeekdaysPM.checked;
     const activityName = DOM.searchActivity.value;
 
     const body = {
-      duration,
+      durationType,
       excludeWeekdaysPM
     };
 
-    if (DOM.searchDiscordEveningToggle.checked) {
-      body.startRange = DOM.searchDiscordStart.value;
-      body.endRange = DOM.searchDiscordEnd.value;
+    if (durationType === 'hours') {
+      body.duration = DOM.searchDuration.value;
+      if (DOM.searchDiscordEveningToggle.checked) {
+        body.startRange = DOM.searchDiscordStart.value;
+        body.endRange = DOM.searchDiscordEnd.value;
+      }
+    } else if (durationType === 'consecutive-days') {
+      body.daysCount = DOM.searchDaysCount.value;
     }
 
     try {
@@ -667,12 +700,12 @@ function renderGroupTimeline() {
   }
 }
 
-// Résultats de recherche
+// Résultats de recherche (Support multi-format)
 function renderSearchResults(slots, activityName) {
   DOM.searchResultsList.innerHTML = '';
   
   if (slots.length === 0) {
-    DOM.searchResultsList.innerHTML = '<div class="result-card" style="justify-content: center; color: var(--text-muted)">Aucun créneau commun trouvé pour cette durée.</div>';
+    DOM.searchResultsList.innerHTML = '<div class="result-card" style="justify-content: center; color: var(--text-muted)">Aucun créneau commun trouvé pour cette formule.</div>';
     DOM.searchResultsSection.classList.remove('hidden');
     return;
   }
@@ -681,17 +714,32 @@ function renderSearchResults(slots, activityName) {
     const card = document.createElement('div');
     card.className = 'result-card';
     
-    const formattedDate = parseLocalDate(slot.date).toLocaleDateString('fr-FR', {
+    const startFormatted = parseLocalDate(slot.date).toLocaleDateString('fr-FR', {
       day: 'numeric', month: 'long', year: 'numeric'
     });
     
+    let dateHTML = `<span class="r-date">${startFormatted}</span>`;
+    let timeHTML = 'Disponible';
+    
+    if (slot.type === 'hours') {
+      dateHTML += `<span class="r-day">${slot.dayOfWeek}</span>`;
+      timeHTML = `${slot.startHour}h00 - ${slot.endHour}h00`;
+    } else if (slot.endDate) {
+      const endFormatted = parseLocalDate(slot.endDate).toLocaleDateString('fr-FR', {
+        day: 'numeric', month: 'long', year: 'numeric'
+      });
+      dateHTML = `<span class="r-date">Du ${startFormatted} au ${endFormatted}</span>`;
+      dateHTML += `<span class="r-day">${slot.label}</span>`;
+    } else {
+      dateHTML += `<span class="r-day">${slot.label}</span>`;
+    }
+    
     card.innerHTML = `
       <div class="result-date-info">
-        <span class="r-date">${formattedDate}</span>
-        <span class="r-day">${slot.dayOfWeek}</span>
+        ${dateHTML}
       </div>
       <div class="result-time">
-        ${slot.startHour}h00 - ${slot.endHour}h00
+        ${timeHTML}
       </div>
     `;
     

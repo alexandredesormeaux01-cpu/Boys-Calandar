@@ -168,10 +168,34 @@
                 </div>
               </div>
               <div class="form-group">
-                <label for="search-duration">Durée de l'activité (heures)</label>
+                <label for="search-duration-type">Type de durée</label>
+                <div class="input-wrapper">
+                  <i data-lucide="sliders"></i>
+                  <select id="search-duration-type" class="select-premium" required>
+                    <option value="hours" selected>Quelques heures</option>
+                    <option value="overnight">Une soirée / nuitée</option>
+                    <option value="full-day">Une journée complète</option>
+                    <option value="weekend">Un week-end complet</option>
+                    <option value="consecutive-days">Plusieurs jours consécutifs</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Champ conditionnel : Heures (pour Quelques heures) -->
+              <div id="hours-duration-field" class="form-group">
+                <label for="search-duration">Durée (heures)</label>
                 <div class="input-wrapper">
                   <i data-lucide="hourglass"></i>
-                  <input type="number" id="search-duration" min="1" max="14" value="2" required>
+                  <input type="number" id="search-duration" min="1" max="14" value="2">
+                </div>
+              </div>
+
+              <!-- Champ conditionnel : Jours (pour Plusieurs jours consécutifs) -->
+              <div id="days-duration-field" class="form-group hidden">
+                <label for="search-days-count">Nombre de jours consécutifs</label>
+                <div class="input-wrapper">
+                  <i data-lucide="calendar"></i>
+                  <input type="number" id="search-days-count" min="2" max="7" value="2">
                 </div>
               </div>
 
