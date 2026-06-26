@@ -5,6 +5,7 @@
   --bg-overlay: rgba(248, 250, 252, 0.75); /* Voile clair sur l'image */
   --bg-card: rgba(255, 255, 255, 0.85);
   --bg-input: rgba(241, 245, 249, 0.8);
+  --bg-input-focus: #ffffff;
   
   --border-color: rgba(226, 232, 240, 0.8);
   --border-focus: #4f46e5;
@@ -42,6 +43,7 @@ body.dark-mode {
   --bg-overlay: rgba(15, 23, 42, 0.8); /* Voile sombre sur l'image */
   --bg-card: rgba(30, 41, 59, 0.85);
   --bg-input: rgba(15, 23, 42, 0.7);
+  --bg-input-focus: #1e293b;
   
   --border-color: rgba(71, 85, 105, 0.6);
   --border-focus: #818cf8;
@@ -314,7 +316,7 @@ header {
 }
 
 .input-wrapper input:focus {
-  background: #ffffff;
+  background: var(--bg-input-focus);
   border-color: var(--border-focus);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
