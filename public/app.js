@@ -622,3 +622,11 @@ function renderSearchResults(slots, activityName) {
 
 // Démarrer l'application
 init();
+
+// Rafraîchir les données de groupe toutes les 10 secondes automatiquement
+setInterval(() => {
+  if (state.token) {
+    refreshDashboardData();
+  }
+}, 10000);
+
